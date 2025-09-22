@@ -1,5 +1,10 @@
-/* 
+/*
  * REPRESENTACAO DE GRAFOS - Versao 2025/2
+ *
+ *  Gabriel Alves de Freitas Spinola Sucupira - 10418133
+ *  Gustavo Galhardo Rodrigues - 10403091
+ *  Lucas Zanini da Silva - 10417361
+ *
  */
 
 #include<stdio.h>
@@ -61,7 +66,11 @@ void destroiGrafo(Vert **G, int ordem);
 int  acrescentaAresta(Vert G[], int ordem, int v1, int v2, int distancia);
 void imprimeGrafo(Vert G[], int ordem);
 void dfs(Vert *graph, int vertex, int* visitado);
- 
+int minDistancia(int dist[], bool visitado[], int n);
+void dijkstra(Vert *G, int n, int origem);
+
+
+
 /*
  * Criacao de um grafo com ordem predefinida (passada como argumento),
  *   e, inicilamente, sem nenhuma aresta 
@@ -84,17 +93,21 @@ void criaGrafo(Vert **G, int ordem){
  */
 void destroiGrafo(Vert **G, int ordem){
 	int i;
-    Arest *a, *n;
+  Arest *a, *n;
     
-	for(i=0; i<ordem; i++){ /* Remove lista de adjacencia de cada vertice */
-	    a= (*G)[i].prim;
-        while (a!= NULL){
-              n= a->prox;
-              free(a);
-              a= n;
-        }
+	for(i = 0; i < ordem; i++){ /* Remove lista de adjacencia de cada vertice */
+    a = (*G)[i].prim;
+    while (a!= NULL){
+      n= a->prox;
+      free(a);
+      a = n;
+
+    }
+
 	}
-    free(*G);  /* Remove o vetor de vertices */
+
+  free(*G);  /* Remove o vetor de vertices */
+
 }
 
 /*  
@@ -104,27 +117,27 @@ void destroiGrafo(Vert **G, int ordem){
  *   i != j, serao criadas, na estrutura de dados, arestas (i,j) e (j,i) .
  */
 int acrescentaAresta(Vert G[], int ordem, int v1, int v2, int distancia){
-    Arest * A1, *A2;
-    
+  Arest * A1, *A2;
+  
 	if (v1<0 || v1 >= ordem) /* Testo se vertices sao validos */
-	   return 0;
+	  return 0;
 	if (v2<0 || v2 >= ordem)
-	   return 0;
+	  return 0;
 	
 	/* Acrescento aresta na lista do vertice v1 */
-	A1= (Arest *) malloc(sizeof(Arest));
-	A1->extremo2= v2;
-	A1->prox= G[v1].prim;
-	G[v1].prim= A1;
+	A1 = (Arest *) malloc(sizeof(Arest));
+	A1->extremo2 = v2;
+	A1->prox = G[v1].prim;
+	G[v1].prim = A1;
 	A1->distancia = distancia;
 
 	if (v1 == v2) return 1; /* Aresta e um laco */
 
 	/* Acrescento aresta na lista do vertice v2 se v2 != v1 */	
-	A2= (Arest *) malloc(sizeof(Arest));
-	A2->extremo2= v1;
-	A2->prox= G[v2].prim;
-	G[v2].prim= A2;
+	A2 = (Arest *) malloc(sizeof(Arest));
+	A2->extremo2 = v1;
+	A2->prox = G[v2].prim;
+	G[v2].prim = A2;
 	A2->distancia = distancia;
 	
 	return 1;
@@ -168,6 +181,8 @@ void dfs(Vert *graph, int vertex, int* visitado){
 	}
 
 }
+
+
 /*  
  * Imprime um grafo com uma notacao similar a uma lista de adjacencia.
  */
@@ -182,10 +197,93 @@ void imprimeGrafo(Vert G[], int ordem){
 		printf("\n    v%d (%s): ", i, lista_localidades[i]);
 		aux= G[i].prim;
 		for( ; aux != NULL; aux= aux->prox)
-			printf("  v%d ( %d metros )", aux->extremo2, aux->distancia);
+			printf("  v%d ( %d quadras)", aux->extremo2, aux->distancia);
 	}
 	printf("\n\n");
 
+}
+
+
+/*
+Funcao que pega o indice do vertice com menor distancia que ainda nao foi visitado
+*/ 
+int minDistancia(int dist[], bool visitado[], int n){
+  int min = INF, minIndex = -1;
+
+  for (int i = 0; i < n; i++){
+
+    if (!visitado[i] && dist[i] <= min) {
+      min = dist[i];
+      minIndex = i;
+    }
+
+  }
+  return minIndex;
+}  
+
+
+/*
+Algoritmo de Dijkstra para encontrar o caminho minimo 
+*/
+void dijkstra(Vert *G, int n, int origem) {
+    int dist[n];
+    bool visitado[n];
+    int anterior[n];
+
+    for (int i = 0; i < n; i++) {
+        dist[i] = INF;
+        visitado[i] = false;
+        anterior[i] = -1;
+    }
+
+    dist[origem] = 0;
+
+    for (int i = 0; i < n-1; i++) {
+
+      int index = minDistancia(dist, visitado, n);
+
+      if (index == -1) break;
+
+      visitado[index] = true;
+
+      Arest *adj = G[index].prim;
+
+      while (adj != NULL) {
+
+        int v = adj->extremo2;
+        int peso = adj->distancia;
+
+        if (!visitado[v] && dist[index] != INF && dist[index] + peso < dist[v]) {
+
+          dist[v] = dist[index] + peso;
+          anterior[v] = index;
+
+        }
+
+        adj = adj->prox;
+      }
+    }
+
+    // Exibir resultado
+    printf("\nDistâncias mínimas a partir de v%d (%s):\n", origem, G[origem].localidade);
+    for (int i = 0; i < n; i++) {
+        printf("v%d (%s): ", i, G[i].localidade);
+        if (dist[i] == INF)
+            printf("inacessível\n");
+        else {
+            printf("%d quadras", dist[i]);
+
+            printf(" | caminho: ");
+            int caminho[100];
+            int k = 0;
+            for (int v = i; v != -1; v = anterior[v]) caminho[k++] = v;
+            for (int j = k - 1; j >= 0; j--) {
+                printf("v%d", caminho[j]);
+                if (j != 0) printf(" -> ");
+            }
+            printf("\n");
+        }
+    }
 }
 
 /*
@@ -197,10 +295,10 @@ int main(int argc, char *argv[]) {
 	ordemG= 4; /* Vertices identificado de 0 ate 9 */
 		
 	criaGrafo(&G, ordemG);
-	acrescentaAresta(G, ordemG, 0,1, 50);
-	acrescentaAresta(G, ordemG, 0,2, 20);
-	acrescentaAresta(G, ordemG, 1,3, 45);
-	acrescentaAresta(G, ordemG, 2,3, 60);
+	acrescentaAresta(G, ordemG, 0,1, 5);
+	acrescentaAresta(G, ordemG, 0,2, 2);
+	acrescentaAresta(G, ordemG, 1,3, 4);
+	acrescentaAresta(G, ordemG, 2,3, 6);
 
 	imprimeGrafo(G, ordemG);
 
@@ -210,7 +308,9 @@ int main(int argc, char *argv[]) {
 	else {
 		printf("\nO grafo não é conexo \n");
 	}
-       
+
+  dijkstra(G, ordemG, 0);
+
 	destroiGrafo(&G, ordemG);
 	
 	printf("Pressione uma tecla para terminar\n");
